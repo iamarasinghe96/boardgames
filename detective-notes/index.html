@@ -115,6 +115,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--maybe); out
   font: inherit; font-weight: 700; border: 1.5px solid var(--rule); background: transparent; color: var(--ink);
   padding: 6px 12px; border-radius: 3px; cursor: pointer;
 }
+a.btn { text-decoration: none; display: inline-block; }
 .btn.danger { border-color: var(--cross); color: var(--cross); }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .hint { max-width: 460px; margin: 8px auto 0; font-size: .78rem; color: var(--ink); background: var(--paper); padding: 8px 14px; opacity: .92; }
@@ -131,6 +132,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--maybe); out
 
 <div class="tools">
   <div class="legend"><span><b class="k1">✕</b> doesn't have</span><span><b class="k2">✓</b> has it</span><span><b class="k3">?</b> maybe</span></div>
+  <a class="btn" id="rulesLink" href="rules.pdf" target="_blank" rel="noopener">Rules (PDF)</a>
   <div id="resetArea"><button class="btn" id="resetBtn" type="button">New game</button></div>
 </div>
 <p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row.</p>

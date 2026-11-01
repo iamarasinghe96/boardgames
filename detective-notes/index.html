@@ -1,0 +1,207 @@
+<title>Detective Notes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Questrial&display=swap">
+<style>
+/* Layout: one printed pad sheet centred on a gingham tablecloth; three ruled grids, six player columns. */
+:root {
+  --cloth-a: #7d8a4f;
+  --cloth-b: #e9e6d6;
+  --paper: #fbfaf6;
+  --ink: #2f3742;
+  --rule: #3a424d;
+  --muted: #6b7280;
+  --cross: #b4473c;
+  --tick: #2f7d55;
+  --maybe: #b8862a;
+  --hit: #eef0e4;
+  --font-display: "League Spartan", "Arial Black", system-ui, sans-serif;
+  --font-body: "Questrial", "Century Gothic", "Avenir", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --cloth-a: #3b4228; --cloth-b: #23261c; --paper: #1f2226; --ink: #e4e6ea; --rule: #8b939e;
+  --muted: #9aa1ab; --cross: #e8796d; --tick: #6ccf9a; --maybe: #e2b65a; --hit: #2a2e33; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --cloth-a: #3b4228; --cloth-b: #23261c; --paper: #1f2226; --ink: #e4e6ea; --rule: #8b939e;
+  --muted: #9aa1ab; --cross: #e8796d; --tick: #6ccf9a; --maybe: #e2b65a; --hit: #2a2e33; color-scheme: dark }
+
+html, body { min-height: 100%; }
+body {
+  background-color: var(--cloth-b);
+  background-image:
+    linear-gradient(90deg, color-mix(in srgb, var(--cloth-a) 55%, transparent) 50%, transparent 50%),
+    linear-gradient(color-mix(in srgb, var(--cloth-a) 55%, transparent) 50%, transparent 50%);
+  background-size: 56px 56px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet {
+  max-width: 460px; margin: 0 auto;
+  background: var(--paper);
+  padding: 22px 18px 14px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / .18), 0 12px 30px rgb(0 0 0 / .22);
+  border-top: 3px dotted color-mix(in srgb, var(--ink) 18%, transparent);
+}
+h1 {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(2.6rem, 12vw, 3.6rem); line-height: .9; letter-spacing: -.02em;
+  margin: 0 0 4px; text-align: center; text-wrap: balance;
+}
+.players-label {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: .14em;
+  font-size: .8rem; text-align: right; margin: 6px 4px 2px 0;
+}
+table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 18px; }
+col.name { width: 40%; }
+th.section {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: .1em;
+  font-size: 1rem; text-align: left; padding: 6px 0 4px 2.2rem; border-bottom: 1.5px solid var(--rule);
+}
+td, th.p { border: 1.5px solid var(--rule); }
+td.name {
+  border-left: 0; padding: 0;
+  font-size: 1rem; letter-spacing: .02em;
+}
+td.name button {
+  all: unset; box-sizing: border-box; display: block; width: 100%; padding: 9px 4px 7px 6px; cursor: pointer;
+}
+tr.out td.name button { text-decoration: line-through 2px var(--cross); color: var(--muted); }
+tr.solved td.name { background: var(--hit); }
+tr.solved td.name button { font-weight: 700; }
+tr.solved td.name button::after { content: " ★"; color: var(--maybe); }
+th.p { padding: 0; height: 2.2rem; }
+th.p input {
+  all: unset; box-sizing: border-box; width: 100%; height: 100%; text-align: center;
+  font-family: var(--font-display); font-weight: 700; font-size: .85rem; text-transform: uppercase;
+}
+th.p input::placeholder { color: color-mix(in srgb, var(--muted) 55%, transparent); }
+td.c { padding: 0; }
+td.c button {
+  all: unset; box-sizing: border-box; display: grid; place-items: center; width: 100%; height: 2.3rem;
+  cursor: pointer; font-size: 1.25rem; font-family: var(--font-display); font-weight: 800;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+td.c button[data-v="1"] { color: var(--cross); }
+td.c button[data-v="2"] { color: var(--tick); }
+td.c button[data-v="3"] { color: var(--maybe); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--maybe); outline-offset: -2px; }
+@media (hover: hover) { td.c button:hover { background: var(--hit); } }
+
+.foot {
+  display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  font-size: .72rem; color: var(--muted); border-top: 1.5px solid var(--rule); padding-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.tools {
+  max-width: 460px; margin: 14px auto 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  background: var(--paper); padding: 10px 14px; box-shadow: 0 6px 18px rgb(0 0 0 / .18);
+  font-size: .85rem;
+}
+.legend { display: flex; gap: 12px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.legend b { font-family: var(--font-display); }
+.k1 { color: var(--cross); } .k2 { color: var(--tick); } .k3 { color: var(--maybe); }
+.btn {
+  font: inherit; font-weight: 700; border: 1.5px solid var(--rule); background: transparent; color: var(--ink);
+  padding: 6px 12px; border-radius: 3px; cursor: pointer;
+}
+.btn.danger { border-color: var(--cross); color: var(--cross); }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hint { max-width: 460px; margin: 8px auto 0; font-size: .78rem; color: var(--ink); background: var(--paper); padding: 8px 14px; opacity: .92; }
+</style>
+
+<main class="sheet" id="sheet">
+  <h1>Detective<br>Notes</h1>
+  <div class="players-label">PLAYERS</div>
+  <div id="grids"></div>
+  <div class="foot"><span id="count">0 of 21 cleared</span><span>Case file № <span id="caseno"></span></span></div>
+</main>
+
+<div class="tools">
+  <div class="legend"><span><b class="k1">✕</b> doesn't have</span><span><b class="k2">✓</b> has it</span><span><b class="k3">?</b> maybe</span></div>
+  <div id="resetArea"><button class="btn" id="resetBtn" type="button">New game</button></div>
+</div>
+<p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row.</p>
+
+<script>
+const SECTIONS = [
+  ["WHO?", ["Green","Mustard","Peacock","Plum","Scarlett","White"]],
+  ["WHAT?", ["Candlestick","Dagger","Lead Pipe","Revolver","Rope","Wrench"]],
+  ["WHERE?", ["Ballroom","Billiard Room","Conservatory","Dining Room","Hall","Kitchen","Library","Lounge","Study"]],
+];
+const COLS = 6, MARKS = ["", "✕", "✓", "?"], KEY = "detective-notes-v1";
+const fresh = () => ({ players: Array(COLS).fill(""), cells: {}, rows: {}, caseNo: String(Math.floor(1000 + Math.random()*9000)) });
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch { state = fresh(); }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+
+function render() {
+  const grids = document.getElementById("grids");
+  grids.innerHTML = "";
+  SECTIONS.forEach(([title, items], si) => {
+    const t = document.createElement("table");
+    let html = `<colgroup><col class="name">${"<col>".repeat(COLS)}</colgroup><tr><th class="section" scope="col">${title}</th>`;
+    for (let c = 0; c < COLS; c++) {
+      html += si === 0
+        ? `<th class="p"><input id="p${c}" maxlength="3" placeholder="${c+1}" aria-label="Player ${c+1} initials" value="${(state.players[c]||"").replace(/"/g,"&quot;")}"></th>`
+        : `<th class="p" aria-label="Player ${c+1}"><input tabindex="-1" readonly data-mirror="${c}" value="${(state.players[c]||"").replace(/"/g,"&quot;")}" aria-hidden="true"></th>`;
+    }
+    html += "</tr>";
+    items.forEach(item => {
+      const rs = state.rows[item] || 0;
+      html += `<tr class="${rs===1?"out":rs===2?"solved":""}"><td class="name"><button type="button" data-row="${item}">${item}</button></td>`;
+      for (let c = 0; c < COLS; c++) {
+        const v = state.cells[item+"|"+c] || 0;
+        html += `<td class="c"><button type="button" data-cell="${item}|${c}" data-v="${v}" aria-label="${item}, player ${c+1}">${MARKS[v]}</button></td>`;
+      }
+      html += "</tr>";
+    });
+    t.innerHTML = html;
+    grids.appendChild(t);
+  });
+  document.getElementById("caseno").textContent = state.caseNo;
+  updateCount();
+}
+function updateCount() {
+  const n = Object.values(state.rows).filter(v => v === 1).length;
+  document.getElementById("count").textContent = `${n} of 21 cleared`;
+}
+
+document.getElementById("grids").addEventListener("click", e => {
+  const cell = e.target.closest("[data-cell]");
+  if (cell) {
+    const v = ((state.cells[cell.dataset.cell] || 0) + 1) % MARKS.length;
+    if (v) state.cells[cell.dataset.cell] = v; else delete state.cells[cell.dataset.cell];
+    cell.dataset.v = v; cell.textContent = MARKS[v]; save(); return;
+  }
+  const row = e.target.closest("[data-row]");
+  if (row) {
+    const name = row.dataset.row, v = ((state.rows[name] || 0) + 1) % 3;
+    if (v) state.rows[name] = v; else delete state.rows[name];
+    const tr = row.closest("tr"); tr.className = v===1?"out":v===2?"solved":"";
+    updateCount(); save();
+  }
+});
+document.getElementById("grids").addEventListener("input", e => {
+  if (!e.target.id.startsWith("p")) return;
+  const c = +e.target.id.slice(1);
+  state.players[c] = e.target.value;
+  document.querySelectorAll(`[data-mirror="${c}"]`).forEach(m => m.value = e.target.value);
+  save();
+});
+
+const area = document.getElementById("resetArea");
+function showReset() {
+  area.innerHTML = `<button class="btn" id="resetBtn" type="button">New game</button>`;
+  document.getElementById("resetBtn").onclick = () => {
+    area.innerHTML = `<span class="confirm">Clear all marks? <button class="btn danger" id="yes" type="button">Clear</button><button class="btn" id="no" type="button">Cancel</button></span>`;
+    document.getElementById("yes").onclick = () => {
+      const keep = state.players; state = fresh(); state.players = keep; save(); render(); showReset();
+    };
+    document.getElementById("no").onclick = showReset;
+  };
+}
+render(); showReset();
+</script>

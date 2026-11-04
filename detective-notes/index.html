@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#7d8a4f">
 <title>Detective Notes</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@700;800&family=Questrial&display=swap">
 <style>
-/* Layout: one printed pad sheet centred on a gingham tablecloth; three ruled grids, six player columns. */
+/* Layout: one printed pad sheet centred on a gingham tablecloth; three ruled grids, six player columns,
+   with an optional guide console docked to the bottom of the screen. */
 :root {
   --cloth-a: #7d8a4f;
   --cloth-b: #e9e6d6;
@@ -32,9 +32,11 @@
   --muted: #9aa1ab; --cross: #e8796d; --tick: #6ccf9a; --maybe: #e2b65a; --hit: #2a2e33; color-scheme: dark }
 
 *, *::before, *::after { box-sizing: border-box; }
+/* Stops double-tap zoom; two-finger pinch zoom still works. */
+html, body, button, input, select, label, a, td.c button, td.name button, th.p input, .legend button, .icon-btn { touch-action: manipulation; }
 html, body { min-height: 100%; }
-body { margin: 0; }
 body {
+  margin: 0;
   background-color: var(--cloth-b);
   background-image:
     linear-gradient(90deg, color-mix(in srgb, var(--cloth-a) 55%, transparent) 50%, transparent 50%),
@@ -42,10 +44,13 @@ body {
   background-size: 56px 56px;
   color: var(--ink);
   font-family: var(--font-body);
-  padding-block: 24px 40px;
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-text-size-adjust: 100%;
 }
+body.guiding { padding-bottom: calc(var(--guide-h, 300px) + 24px + env(safe-area-inset-bottom, 0px)); }
 .sheet {
   max-width: 460px; margin: 0 auto;
   background: var(--paper);
@@ -69,18 +74,14 @@ th.section {
   font-size: 1rem; text-align: left; padding: 6px 0 4px 2.2rem; border-bottom: 1.5px solid var(--rule);
 }
 td, th.p { border: 1.5px solid var(--rule); }
-td.name {
-  border-left: 0; padding: 0;
-  font-size: 1rem; letter-spacing: .02em;
-}
-td.name button {
-  all: unset; box-sizing: border-box; display: block; width: 100%; padding: 9px 4px 7px 6px; cursor: pointer;
-}
+td.name { border-left: 0; padding: 0; font-size: 1rem; letter-spacing: .02em; }
+td.name button { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 9px 4px 7px 6px; cursor: pointer; }
 tr.out td.name button { text-decoration: line-through 2px var(--cross); color: var(--muted); }
 tr.solved td.name { background: var(--hit); }
 tr.solved td.name button { font-weight: 700; }
 tr.solved td.name button::after { content: " ★"; color: var(--maybe); }
 th.p { padding: 0; height: 2.2rem; }
+th.p.me { background: var(--hit); }
 th.p input {
   all: unset; box-sizing: border-box; width: 100%; height: 100%; text-align: center;
   font-family: var(--font-display); font-weight: 700; font-size: .85rem; text-transform: uppercase;
@@ -90,12 +91,12 @@ td.c { padding: 0; }
 td.c button {
   all: unset; box-sizing: border-box; display: grid; place-items: center; width: 100%; height: 2.3rem;
   cursor: pointer; font-size: 1.25rem; font-family: var(--font-display); font-weight: 800;
-  -webkit-tap-highlight-color: transparent; user-select: none;
+  -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
 }
 td.c button[data-v="1"] { color: var(--cross); }
 td.c button[data-v="2"] { color: var(--tick); }
 td.c button[data-v="3"] { color: var(--maybe); }
-button:focus-visible, input:focus-visible { outline: 2px solid var(--maybe); outline-offset: -2px; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--maybe); outline-offset: -2px; }
 @media (hover: hover) { td.c button:hover { background: var(--hit); } }
 
 .foot {
@@ -108,47 +109,93 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--maybe); out
   background: var(--paper); padding: 10px 14px; box-shadow: 0 6px 18px rgb(0 0 0 / .18);
   font-size: .85rem;
 }
-.legend { display: flex; gap: 12px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.legend { display: flex; gap: 6px 12px; flex-wrap: wrap; flex: 1 1 100%; min-width: 0; }
+.legend button { all: unset; cursor: pointer; padding: 2px 0; }
 .legend b { font-family: var(--font-display); }
 .k1 { color: var(--cross); } .k2 { color: var(--tick); } .k3 { color: var(--maybe); }
 .btn {
   font: inherit; font-weight: 700; border: 1.5px solid var(--rule); background: transparent; color: var(--ink);
-  padding: 6px 12px; border-radius: 3px; cursor: pointer;
+  padding: 7px 12px; border-radius: 3px; cursor: pointer;
 }
 a.btn { text-decoration: none; display: inline-block; }
-.btn.danger { border-color: var(--cross); color: var(--cross); }
-.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.log {
-  max-width: 460px; margin: 14px auto 0; background: var(--paper); padding: 16px 16px 12px;
-  box-shadow: 0 6px 18px rgb(0 0 0 / .18);
-}
-.log h2 {
-  font-family: var(--font-display); font-weight: 700; letter-spacing: .1em; font-size: 1rem;
-  margin: 0 0 10px; border-bottom: 1.5px solid var(--rule); padding-bottom: 4px;
-}
-.log form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.log label { display: grid; gap: 3px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-width: 0; }
-.log label.wide { grid-column: 1 / -1; }
-.log select, .log input[type="text"] {
-  font: inherit; font-size: .95rem; letter-spacing: 0; text-transform: none; color: var(--ink);
-  background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; padding: 7px 6px; width: 100%; min-width: 0;
-}
-.log .actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.log .actions small { color: var(--muted); flex: 1; min-width: 10rem; }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.entries { list-style: none; margin: 12px 0 0; padding: 0; display: grid; }
-.entries li {
-  display: grid; grid-template-columns: 2.2rem 1fr auto; gap: 8px; align-items: baseline;
-  padding: 7px 0; border-top: 1px dashed color-mix(in srgb, var(--rule) 45%, transparent);
-}
-.entries .n { font-family: var(--font-display); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.entries .t { min-width: 0; overflow-wrap: anywhere; }
-.entries .t b { font-family: var(--font-display); }
-.entries .t em { font-style: normal; color: var(--muted); }
-.entries .tag { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--maybe); margin-right: 4px; }
-.entries .del { all: unset; cursor: pointer; color: var(--muted); padding: 0 4px; font-size: 1.1rem; }
-.entries .empty { display: block; color: var(--muted); font-size: .85rem; border: 0; }
+.btn.danger { border-color: var(--cross); color: var(--cross); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .hint { max-width: 460px; margin: 8px auto 0; font-size: .78rem; color: var(--ink); background: var(--paper); padding: 8px 14px; opacity: .92; }
+
+/* Meaning toast */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  max-width: min(420px, calc(100vw - 32px)); padding: 10px 14px;
+  background: var(--ink); color: var(--paper); border-radius: 4px; font-size: .9rem;
+  box-shadow: 0 8px 22px rgb(0 0 0 / .3); pointer-events: none;
+  opacity: 0; transition: opacity .15s;
+}
+.toast.show { opacity: 1; }
+body.guiding .toast { bottom: calc(var(--guide-h, 300px) + 12px + env(safe-area-inset-bottom, 0px)); }
+.toast b { font-family: var(--font-display); }
+.toast .m1 { color: color-mix(in srgb, var(--cross) 70%, var(--paper)); }
+
+/* Guide console */
+.guide {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
+}
+.guide-card {
+  pointer-events: auto;
+  max-width: 460px; margin: 0 auto; background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--rule); border-bottom: 0;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / .28);
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: min(62vh, 520px);
+}
+.guide-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-bottom: 1.5px solid var(--rule); font-family: var(--font-display); font-weight: 700;
+  letter-spacing: .1em; font-size: .78rem;
+}
+.guide-head .phase { flex: 1; min-width: 0; color: var(--muted); }
+.guide-head .phase b { color: var(--ink); }
+.icon-btn { all: unset; cursor: pointer; padding: 4px 6px; font-size: .95rem; color: var(--muted); }
+.guide-body { overflow-y: auto; padding: 12px 14px 4px; overscroll-behavior: contain; }
+.guide-body h2 {
+  font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; line-height: 1.05;
+  margin: 0 0 6px; text-wrap: balance;
+}
+.guide-body p { margin: 0 0 8px; line-height: 1.4; }
+.guide-body ul { margin: 0 0 8px; padding-left: 1.1rem; line-height: 1.4; display: grid; gap: 3px; }
+.guide-body .say {
+  border-left: 3px solid var(--maybe); padding: 6px 10px; margin: 0 0 8px; background: var(--hit);
+  font-size: 1.02rem;
+}
+.guide-body .say b { font-family: var(--font-display); }
+.guide-body .note { font-size: .8rem; color: var(--muted); }
+.field { display: grid; gap: 4px; margin: 0 0 10px; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field select {
+  font: inherit; font-size: 1rem; letter-spacing: 0; text-transform: none; color: var(--ink);
+  background: var(--paper); border: 1.5px solid var(--rule); border-radius: 3px; padding: 8px 6px; width: 100%; min-width: 0;
+}
+.checks { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.checks label {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer;
+  border: 1.5px solid var(--rule); border-radius: 3px; font-size: .92rem;
+}
+.checks label:has(input:checked) { background: var(--ink); color: var(--paper); }
+.checks input { accent-color: var(--tick); margin: 0; }
+.checks .group { flex-basis: 100%; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.choice { display: grid; gap: 8px; margin: 4px 0 10px; }
+.choice .btn { text-align: left; padding: 10px 12px; }
+.guide-foot { display: flex; gap: 8px; padding: 10px 14px 12px; border-top: 1px dashed color-mix(in srgb, var(--rule) 45%, transparent); }
+.guide-foot .spacer { flex: 1; }
+.guide.min .guide-body, .guide.min .guide-foot { display: none; }
+.guide.min .guide-card { grid-template-rows: auto; }
+.err { color: var(--cross); font-size: .85rem; }
+td.c button, td.name button, th.p input, .legend button, .icon-btn { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 </style>
 </head>
 <body>
@@ -161,28 +208,32 @@ a.btn { text-decoration: none; display: inline-block; }
 </main>
 
 <div class="tools">
-  <div class="legend"><span><b class="k1">✕</b> doesn't have</span><span><b class="k2">✓</b> has it</span><span><b class="k3">?</b> maybe</span></div>
+  <div class="legend" id="legend">
+    <button type="button" data-legend="1"><b class="k1">✕</b> doesn't have</button>
+    <button type="button" data-legend="2"><b class="k2">✓</b> has it</button>
+    <button type="button" data-legend="3"><b class="k3">?</b> maybe</button>
+    <button type="button" data-legend="out"><s>Name</s> not in envelope</button>
+    <button type="button" data-legend="star">★ your answer</button>
+  </div>
+  <button class="btn" id="guideBtn" type="button" aria-pressed="false">New player mode</button>
   <a class="btn" id="rulesLink" href="rules.pdf" target="_blank" rel="noopener">Rules (PDF)</a>
-  <div id="resetArea"><button class="btn" id="resetBtn" type="button">New game</button></div>
+  <div id="resetArea"></div>
 </div>
-<section class="log" aria-labelledby="logTitle">
-  <h2 id="logTitle">CASE LOG</h2>
-  <form id="logForm">
-    <label>Shown by<select id="lFrom"></select></label>
-    <label>Shown to<select id="lTo"></select></label>
-    <label>Card<select id="lCard"></select></label>
-    <label>Because of<select id="lWhy">
-      <option>Suggestion</option><option>Clue card</option><option>Other</option>
-    </select></label>
-    <label class="wide">Note<input type="text" id="lNote" maxlength="140" placeholder="e.g. Scarlett said what? Everyone showed left"></label>
-    <div class="actions">
-      <button class="btn primary" type="submit">Add note</button>
-      <small id="lHelp">A card shown to you is also ticked ✓ on the sheet.</small>
+<p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row. Every tap shows what the mark means.</p>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<section class="guide" id="guide" hidden aria-label="New player guide">
+  <div class="guide-card">
+    <div class="guide-head">
+      <span class="phase" id="gPhase"></span>
+      <button class="icon-btn" id="gMin" type="button" aria-label="Minimise guide">▾</button>
+      <button class="icon-btn" id="gClose" type="button" aria-label="Turn off new player mode">✕</button>
     </div>
-  </form>
-  <ul class="entries" id="entries"></ul>
+    <div class="guide-body" id="gBody"></div>
+    <div class="guide-foot" id="gFoot"></div>
+  </div>
 </section>
-<p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row.</p>
 
 <script>
 const SECTIONS = [
@@ -190,12 +241,24 @@ const SECTIONS = [
   ["WHAT?", ["Candlestick","Dagger","Lead Pipe","Revolver","Rope","Wrench"]],
   ["WHERE?", ["Ballroom","Billiard Room","Conservatory","Dining Room","Hall","Kitchen","Library","Lounge","Study"]],
 ];
+const [SUSPECTS, WEAPONS, ROOMS] = SECTIONS.map(s => s[1]);
+const ALL = SECTIONS.flatMap(s => s[1]);
 const COLS = 6, MARKS = ["", "✕", "✓", "?"], KEY = "detective-notes-v1";
-const fresh = () => ({ players: Array(COLS).fill(""), cells: {}, rows: {}, log: [], caseNo: String(Math.floor(1000 + Math.random()*9000)) });
+const fresh = () => ({ players: Array(COLS).fill(""), cells: {}, rows: {}, me: null,
+  guide: { on: false, min: false, step: "intro", hist: [], d: {}, turn: 0 },
+  caseNo: String(Math.floor(1000 + Math.random()*9000)) });
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch { state = fresh(); }
+const base = fresh();
+for (const k of Object.keys(base)) if (state[k] === undefined) state[k] = base[k];
+delete state.log;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+const pname = c => (state.players[c] || "").trim() || `Player ${+c + 1}`;
+const pwho = c => c == state.me ? "You" : pname(c);
+const others = () => [...Array(COLS).keys()].filter(c => c != state.me);
 
+/* ---------- Sheet ---------- */
 function render() {
   const grids = document.getElementById("grids");
   grids.innerHTML = "";
@@ -203,9 +266,10 @@ function render() {
     const t = document.createElement("table");
     let html = `<colgroup><col class="name">${"<col>".repeat(COLS)}</colgroup><tr><th class="section" scope="col">${title}</th>`;
     for (let c = 0; c < COLS; c++) {
+      const v = esc(state.players[c] || ""), me = c == state.me ? " me" : "";
       html += si === 0
-        ? `<th class="p"><input id="p${c}" maxlength="3" placeholder="${c+1}" aria-label="Player ${c+1} initials" value="${(state.players[c]||"").replace(/"/g,"&quot;")}"></th>`
-        : `<th class="p" aria-label="Player ${c+1}"><input tabindex="-1" readonly data-mirror="${c}" value="${(state.players[c]||"").replace(/"/g,"&quot;")}" aria-hidden="true"></th>`;
+        ? `<th class="p${me}"><input id="p${c}" maxlength="3" placeholder="${c+1}" aria-label="Player ${c+1} initials" value="${v}"></th>`
+        : `<th class="p${me}" aria-label="Player ${c+1}"><input tabindex="-1" readonly data-mirror="${c}" value="${v}" aria-hidden="true"></th>`;
     }
     html += "</tr>";
     items.forEach(item => {
@@ -228,19 +292,52 @@ function updateCount() {
   document.getElementById("count").textContent = `${n} of 21 cleared`;
 }
 
+/* ---------- Meaning toast ---------- */
+let toastTimer;
+function toast(html) {
+  const t = document.getElementById("toast");
+  t.innerHTML = html; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function cellMeaning(card, c, v) {
+  const who = c == state.me ? "You" : `<b>${esc(pname(c))}</b>`;
+  const has = c == state.me ? "have" : "has";
+  return [
+    `Blank: nothing known about ${who} and ${esc(card)} yet.`,
+    `<b class="m1">✕</b> ${who} ${c == state.me ? "don't" : "doesn't"} have <b>${esc(card)}</b>.`,
+    `<b>✓</b> ${who} ${has} <b>${esc(card)}</b>, so it's not in the envelope.`,
+    `<b>?</b> ${who} might have <b>${esc(card)}</b>.`,
+  ][v];
+}
+const rowMeaning = (card, v) => [
+  `<b>${esc(card)}</b> is open again: it could still be in the envelope.`,
+  `<b>${esc(card)}</b> is crossed off: it's not in the envelope.`,
+  `★ <b>${esc(card)}</b> is starred as your answer.`,
+][v];
+const LEGEND = {
+  1: `<b class="m1">✕</b> That player doesn't have the card.`,
+  2: `<b>✓</b> That player has the card, so it's not in the envelope.`,
+  3: `<b>?</b> That player might have the card. Use it when a suggestion was answered but you didn't see which card.`,
+  out: `A crossed-off name is not in the envelope.`,
+  star: `★ A starred name is what you think is in the envelope.`,
+};
+
+/* ---------- Sheet events ---------- */
 document.getElementById("grids").addEventListener("click", e => {
   const cell = e.target.closest("[data-cell]");
   if (cell) {
     const v = ((state.cells[cell.dataset.cell] || 0) + 1) % MARKS.length;
     if (v) state.cells[cell.dataset.cell] = v; else delete state.cells[cell.dataset.cell];
-    cell.dataset.v = v; cell.textContent = MARKS[v]; save(); return;
+    cell.dataset.v = v; cell.textContent = MARKS[v]; save();
+    const [card, c] = cell.dataset.cell.split("|");
+    toast(cellMeaning(card, +c, v)); return;
   }
   const row = e.target.closest("[data-row]");
   if (row) {
     const name = row.dataset.row, v = ((state.rows[name] || 0) + 1) % 3;
     if (v) state.rows[name] = v; else delete state.rows[name];
-    const tr = row.closest("tr"); tr.className = v===1?"out":v===2?"solved":"";
-    updateCount(); save();
+    row.closest("tr").className = v===1?"out":v===2?"solved":"";
+    updateCount(); save(); toast(rowMeaning(name, v));
   }
 });
 document.getElementById("grids").addEventListener("input", e => {
@@ -250,81 +347,316 @@ document.getElementById("grids").addEventListener("input", e => {
   document.querySelectorAll(`[data-mirror="${c}"]`).forEach(m => m.value = e.target.value);
   save();
 });
+document.getElementById("grids").addEventListener("change", e => {
+  if (e.target.id && e.target.id.startsWith("p") && state.guide.on) renderGuide();
+});
+document.getElementById("legend").addEventListener("click", e => {
+  const b = e.target.closest("[data-legend]"); if (b) toast(LEGEND[b.dataset.legend]);
+});
 
+/* ---------- Reset ---------- */
 const area = document.getElementById("resetArea");
 function showReset() {
   area.innerHTML = `<button class="btn" id="resetBtn" type="button">New game</button>`;
   document.getElementById("resetBtn").onclick = () => {
     area.innerHTML = `<span class="confirm">Clear all marks? <button class="btn danger" id="yes" type="button">Clear</button><button class="btn" id="no" type="button">Cancel</button></span>`;
     document.getElementById("yes").onclick = () => {
-      const keep = state.players; state = fresh(); /* log cleared too */ state.players = keep; save(); render(); showReset();
+      const keep = state.players, me = state.me, on = state.guide.on;
+      state = fresh(); state.players = keep; state.me = me; state.guide.on = on;
+      save(); render(); showReset(); if (on) renderGuide();
     };
     document.getElementById("no").onclick = showReset;
   };
 }
-const ALL_CARDS = SECTIONS.flatMap(([t, items]) => items.map(i => [t, i]));
-const pname = c => c === "me" ? "Me" : (state.players[c] || `Player ${+c + 1}`);
-const esc = t => String(t).replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 
-function fillSelects() {
-  const keep = id => document.getElementById(id).value;
-  const pOpts = sel => `<option value="me">Me</option>` +
-    Array.from({length: COLS}, (_, c) => `<option value="${c}">${esc(pname(c))}</option>`).join("");
-  const f = keep("lFrom"), t = keep("lTo");
-  document.getElementById("lFrom").innerHTML = pOpts();
-  document.getElementById("lTo").innerHTML = pOpts();
-  document.getElementById("lFrom").value = f || "0";
-  document.getElementById("lTo").value = t || "me";
-  const cardSel = document.getElementById("lCard");
-  if (!cardSel.options.length) {
-    cardSel.innerHTML = `<option value="">Didn't see it</option>` +
-      SECTIONS.map(([title, items]) => `<optgroup label="${title}">${items.map(i => `<option>${i}</option>`).join("")}</optgroup>`).join("");
-  }
+/* ---------- Marking helpers used by the guide ---------- */
+const setCell = (card, c, v) => { if (v) state.cells[card+"|"+c] = v; else delete state.cells[card+"|"+c]; };
+const getCell = (card, c) => state.cells[card+"|"+c] || 0;
+function holds(card, c) {               // player c has card: tick them, cross everyone else, strike the name
+  for (let k = 0; k < COLS; k++) setCell(card, k, k == c ? 2 : 1);
+  state.rows[card] = 1;
+}
+function lacks(card, c) { if (getCell(card, c) !== 2) setCell(card, c, 1); }
+const isOut = card => state.rows[card] === 1;
+const open = list => list.filter(x => !isOut(x));
+
+/* ---------- Guide console ---------- */
+const G = () => state.guide;
+const D = () => G().d;
+const opts = (list, sel) => {
+  const o = open(list), x = list.filter(isOut);
+  const mk = arr => arr.map(i => `<option${i === sel ? " selected" : ""}>${i}</option>`).join("");
+  return (o.length ? `<optgroup label="Still possible">${mk(o)}</optgroup>` : "") +
+         (x.length ? `<optgroup label="Ruled out">${mk(x)}</optgroup>` : "");
+};
+const playerOpts = (list, sel, extra = "") => extra + list.map(c => `<option value="${c}"${c == sel ? " selected" : ""}>${esc(pwho(c))}</option>`).join("");
+const checksFor = (name, list) => `<div class="checks">${list.map(c =>
+  `<label><input type="checkbox" name="${name}" value="${c}">${esc(pwho(c))}</label>`).join("")}</div>`;
+const val = id => document.getElementById(id)?.value;
+const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i => i.value);
+const sayList = (s, w, r) => `<b>${esc(s)}</b>, in the <b>${esc(r)}</b>, with the <b>${esc(w)}</b>`;
+function bestGuess(list) {
+  const star = list.find(i => state.rows[i] === 2);
+  return star || open(list)[0] || list[0];
 }
 
-function renderLog() {
-  if (!state.log) state.log = [];
-  const ul = document.getElementById("entries");
-  if (!state.log.length) {
-    ul.innerHTML = `<li class="empty">No notes yet. Log each card someone shows, including the ones you show others.</li>`;
-    return;
-  }
-  ul.innerHTML = state.log.map((e, i) => ({e, i})).reverse().map(({e, i}) => `
-    <li><span class="n">${i + 1}</span>
-      <span class="t"><span class="tag">${esc(e.why)}</span><b>${esc(pname(e.from))}</b> showed <b>${esc(pname(e.to))}</b>
-        ${e.card ? `the <b>${esc(e.card)}</b>` : `<em>a card</em>`}${e.note ? `<br><em>${esc(e.note)}</em>` : ""}</span>
-      <button class="del" type="button" data-del="${i}" aria-label="Delete note ${i + 1}">×</button></li>`).join("");
+const STEPS = {
+  intro: () => ({ phase: "Getting started", title: "New player guide",
+    body: `<p>This guide walks you through the game one step at a time. Do each step at the table, then tap <b>Next</b>.</p>
+      <p>Your answers here fill in the sheet for you. Tap any box or name on the sheet to see what its mark means.</p>`,
+    next: () => "setup" }),
+
+  setup: () => ({ phase: "Getting started", title: "Set up the board",
+    body: `<ul>
+      <li>Put all six character pieces on their coloured start spaces, even if fewer people are playing. Each player picks a character.</li>
+      <li>Put each weapon in a different room.</li>
+      <li>Take out the Clue cards (the magnifying glass deck), shuffle them and leave them face down.</li>
+      <li>Sort the rest into characters, weapons and rooms. Shuffle each pile.</li>
+      <li>Without looking, slide the top card of each pile into the envelope.</li>
+      <li>Shuffle the remaining cards together and deal them all out. Some players may get one more card.</li>
+    </ul>`, next: () => "seats" }),
+
+  seats: () => ({ phase: "Getting started", title: "Who's playing?",
+    body: `<p>Type each player's initials in the top row of the sheet, in seating order going to your left.</p>
+      <label class="field">Which column is you?<select id="gMe">${playerOpts([...Array(COLS).keys()], state.me ?? 0).replace(/You/g, "")}</select></label>
+      <p class="note">The guide will put your column first in lists and fill your column in for you.</p>`,
+    next: () => { state.me = +val("gMe"); render(); return "hand"; } }),
+
+  hand: () => ({ phase: "Getting started", title: "Mark the cards in your hand",
+    body: `<p>Look at your cards secretly and tick each one below. None of them can be in the envelope.</p>
+      <div class="checks">${SECTIONS.map(([t, items]) => `<span class="group">${t}</span>` + items.map(i =>
+        `<label><input type="checkbox" name="gHand" value="${i}"${getCell(i, state.me) === 2 ? " checked" : ""}>${i}</label>`).join("")).join("")}</div>`,
+    next: () => {
+      const hand = checked("gHand");
+      if (!hand.length) return { error: "Tick at least one card from your hand." };
+      hand.forEach(card => holds(card, state.me));
+      ALL.filter(c => !hand.includes(c)).forEach(card => lacks(card, state.me));
+      render(); return "first";
+    } }),
+
+  first: () => ({ phase: "Getting started", title: "Who goes first?",
+    body: `<p>Everyone rolls one die. The highest roll goes first, then play passes to the left.</p>`,
+    next: () => "whose" }),
+
+  whose: () => ({ phase: `Turn ${G().turn + 1}`, title: "Whose turn is it?",
+    choices: [
+      ["My turn", () => { G().turn++; G().d = {}; return "roll"; }],
+      ["Someone else's turn", () => { G().turn++; G().d = {}; return "other"; }],
+    ] }),
+
+  /* ---- Your turn ---- */
+  roll: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Roll both dice",
+    body: `<p>Did either die land on the magnifying glass?</p>`,
+    choices: [
+      ["Yes, I rolled a magnifying glass", () => "clue"],
+      ["No", () => "move"],
+    ] }),
+
+  clue: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Draw a Clue card",
+    body: `<p>Take one Clue card (only one, even if you rolled two glasses). Read it out loud, do what it says, then put it at the bottom of the deck.</p>
+      <p>Did it make someone show you a card? If so, record it here.</p>
+      <label class="field">Who showed you a card?<select id="gCFrom">${playerOpts(others(), "", `<option value="">Nobody showed me a card</option>`)}</select></label>
+      <label class="field">Which card?<select id="gCCard"><option value="">—</option>${SECTIONS.map(([t, it]) => `<optgroup label="${t}">${it.map(i => `<option>${i}</option>`).join("")}</optgroup>`).join("")}</select></label>
+      <p class="note">If you had to show a card, show it secretly, then take it back into your hand.</p>`,
+    next: () => {
+      const f = val("gCFrom"), c = val("gCCard");
+      if (f !== "" && !c) return { error: "Choose the card you were shown." };
+      if (f !== "" && c) { holds(c, +f); render(); }
+      return "move";
+    } }),
+
+  move: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Move your piece",
+    body: `<ul>
+      <li>Move up to the number you rolled. A magnifying glass counts as 1.</li>
+      <li>No diagonal moves, no visiting the same square twice, and you can't land on or pass through another piece.</li>
+      <li>You can enter a room through any open doorway without rolling the exact number.</li>
+      <li>Already in a corner room? You can take the secret passage to the opposite corner instead of moving.</li>
+      <li>Already in a room and want to suggest there again? You can stay put.</li>
+    </ul>
+    <label class="field">Where did you end up?<select id="gRoom"><option value="">Not in a room</option>${opts(ROOMS, D().room)}</select></label>`,
+    next: () => { const r = val("gRoom"); D().room = r; return r ? "suggest" : "accuseAsk"; } }),
+
+  suggest: () => {
+    const s = D().s || bestGuess(SUSPECTS), w = D().w || bestGuess(WEAPONS);
+    return { phase: `Turn ${G().turn} · Your turn`, title: "Make a suggestion",
+      body: `<p>Pick who and what to name. The room is the one you're in.</p>
+        <label class="field">Who?<select id="gS">${opts(SUSPECTS, s)}</select></label>
+        <label class="field">With what?<select id="gW">${opts(WEAPONS, w)}</select></label>
+        <p class="note">Tip: naming a card you hold yourself can help you check the other two.</p>`,
+      next: () => { D().s = val("gS"); D().w = val("gW"); return "say"; } };
+  },
+
+  say: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Say it out loud",
+    body: `<div class="say">"I suggest ${sayList(D().s, D().w, D().room)}."</div>
+      <p>Move that character piece and that weapon into the ${esc(D().room)}.</p>
+      <p>Now the player on your left checks their hand. If they have any of the three cards, they secretly show you one. If not, the next player to the left checks, and so on until someone shows you a card or everyone has passed.</p>`,
+    next: () => "answer" }),
+
+  answer: () => {
+    const three = [D().s, D().w, D().room];
+    return { phase: `Turn ${G().turn} · Your turn`, title: "What happened?",
+      body: `<p>Tick everyone who said they had none of the three cards.</p>
+        ${checksFor("gPass", others())}
+        <label class="field">Who showed you a card?<select id="gShow">${playerOpts(others(), "", `<option value="">Nobody could show a card</option>`)}</select></label>
+        <label class="field">Which card did they show you?<select id="gCard"><option value="">—</option>${three.map(c => `<option>${c}</option>`).join("")}</select></label>`,
+      next: () => {
+        const pass = checked("gPass"), sh = val("gShow"), card = val("gCard");
+        if (sh !== "" && !card) return { error: "Choose the card you were shown." };
+        if (sh !== "" && pass.includes(sh)) return { error: `${pwho(sh)} can't both pass and show a card.` };
+        pass.forEach(c => three.forEach(card => lacks(card, +c)));
+        D().shown = sh !== "" ? { by: +sh, card } : null;
+        if (D().shown) holds(card, +sh);
+        render(); return "result";
+      } };
+  },
+
+  result: () => {
+    const sh = D().shown, three = [D().s, D().w, D().room];
+    const mine = three.filter(c => getCell(c, state.me) === 2);
+    let body;
+    if (sh) body = `<p><b>${esc(sh.card)}</b> is ruled out. I've ticked it under ${esc(pwho(sh.by))} and crossed it off.</p>
+      <p>I've also crossed the three cards for everyone who passed.</p>`;
+    else {
+      const left = three.filter(c => !mine.includes(c));
+      body = `<p>Nobody could show a card.</p>` + (left.length
+        ? `<p>${left.map(c => `<b>${esc(c)}</b>`).join(", ")} ${left.length > 1 ? "are" : "is"} very likely in the envelope, because nobody else has ${left.length > 1 ? "them" : "it"}${mine.length ? " and you hold the rest" : ""}.</p>`
+        : `<p>You hold all three yourself, so this tells you nothing new about the envelope.</p>`);
+      left.forEach(c => { if (!isOut(c)) state.rows[c] = 2; });
+      if (left.length) { body += `<p class="note">I've starred ${left.length > 1 ? "them" : "it"} on the sheet.</p>`; render(); }
+    }
+    return { phase: `Turn ${G().turn} · Your turn`, title: sh ? "You were shown a card" : "No one could answer", body, next: () => "accuseAsk" };
+  },
+
+  accuseAsk: () => {
+    const left = SECTIONS.map(([t, it]) => [t, open(it)]);
+    const ready = left.every(([, o]) => o.length === 1);
+    return { phase: `Turn ${G().turn} · Your turn`, title: "Ready to accuse?",
+      body: `<p>Still possible: ${left.map(([t, o]) => `${o.length} ${t.replace("?", "").toLowerCase()}`).join(", ")}.</p>
+        <p>${ready ? "Only one of each is left. You can accuse now." : "Only accuse when you're sure. A wrong accusation puts you out of the game."}</p>
+        <p class="note">You can accuse at the end of any of your turns, from anywhere on the board.</p>`,
+      choices: [
+        [ready ? "Yes, make my accusation" : "Accuse anyway", () => "accuse"],
+        ["Not yet, end my turn", () => "endTurn"],
+      ] };
+  },
+
+  accuse: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Make your accusation",
+    body: `<label class="field">Who?<select id="gAS">${opts(SUSPECTS, bestGuess(SUSPECTS))}</select></label>
+      <label class="field">With what?<select id="gAW">${opts(WEAPONS, bestGuess(WEAPONS))}</select></label>
+      <label class="field">Where?<select id="gAR">${opts(ROOMS, bestGuess(ROOMS))}</select></label>`,
+    next: () => { D().a = [val("gAS"), val("gAW"), val("gAR")]; return "check"; } }),
+
+  check: () => { const [s, w, r] = D().a; return { phase: `Turn ${G().turn} · Your turn`, title: "Check the envelope",
+    body: `<div class="say">"I accuse ${sayList(s, w, r)}."</div>
+      <p>Open the envelope secretly so nobody else sees. Are all three cards you named inside?</p>`,
+    choices: [["Yes, all three match", () => "won"], ["No, at least one is wrong", () => "lost"]] }; },
+
+  won: () => ({ phase: "Game over", title: "You solved the case!",
+    body: `<p>Show everyone the three cards. Well played.</p><p class="note">Tap <b>New game</b> below the sheet to clear it for the next round.</p>`,
+    choices: [["Start again from set-up", () => { G().turn = 0; return "setup"; }]] }),
+
+  lost: () => ({ phase: "Out of the running", title: "Not quite",
+    body: `<p>Put the cards back in the envelope without anyone seeing. You take no more turns, but you stay at the table.</p>
+      <p>When someone else makes a suggestion and it reaches you, you still have to show a card if you have one.</p>`,
+    choices: [["Keep going: someone else's turn", () => { G().turn++; G().d = {}; return "other"; }]] }),
+
+  endTurn: () => ({ phase: `Turn ${G().turn} · Your turn`, title: "Your turn is over",
+    body: `<p>Play passes to the player on your left.</p>`, next: () => "whose" }),
+
+  /* ---- Someone else's turn ---- */
+  other: () => ({ phase: `Turn ${G().turn} · Someone else`, title: "Watch their turn",
+    body: `<label class="field">Whose turn is it?<select id="gWho">${playerOpts(others(), D().who ?? others()[0])}</select></label>
+      <p>Did they make a suggestion?</p>`,
+    choices: [
+      ["Yes, they suggested", () => { D().who = +val("gWho"); return "otherSug"; }],
+      ["No, they just moved", () => "whose"],
+    ] }),
+
+  otherSug: () => ({ phase: `Turn ${G().turn} · ${esc(pname(D().who))}`, title: "What did they suggest?",
+    body: `<label class="field">Who?<select id="gOS">${opts(SUSPECTS, D().os)}</select></label>
+      <label class="field">With what?<select id="gOW">${opts(WEAPONS, D().ow)}</select></label>
+      <label class="field">Where?<select id="gOR">${opts(ROOMS, D().or)}</select></label>`,
+    next: () => { D().os = val("gOS"); D().ow = val("gOW"); D().or = val("gOR"); return "otherAnswer"; } }),
+
+  otherAnswer: () => {
+    const three = [D().os, D().ow, D().or];
+    const mine = three.filter(c => getCell(c, state.me) === 2);
+    const askable = others().filter(c => c != D().who);
+    return { phase: `Turn ${G().turn} · ${esc(pname(D().who))}`, title: "Who answered?",
+      body: (mine.length
+        ? `<div class="say">If it reaches you, secretly show <b>${esc(pname(D().who))}</b> one of: ${mine.map(c => `<b>${esc(c)}</b>`).join(", ")}.</div><p class="note">If you've shown them one of these before, show the same card again so you give away less.</p>`
+        : `<p>You don't hold any of these cards. If it reaches you, say you can't show one.</p>`) +
+        `<p>Tick everyone who said they had none of the three.</p>
+        ${checksFor("gOPass", askable)}
+        <label class="field">Who showed them a card?<select id="gOShow">${playerOpts(askable, "", `<option value="">Nobody, or only me</option>`)}</select></label>`,
+      next: () => {
+        const pass = checked("gOPass"), sh = val("gOShow");
+        if (sh !== "" && pass.includes(sh)) return { error: `${pname(sh)} can't both pass and show a card.` };
+        pass.forEach(c => three.forEach(card => lacks(card, +c)));
+        D().oshow = sh;
+        if (sh !== "") {
+          const unknown = three.filter(card => getCell(card, +sh) !== 1 && getCell(card, +sh) !== 2);
+          const possible = three.filter(card => getCell(card, +sh) !== 1);
+          if (possible.length === 1) holds(possible[0], +sh);
+          else unknown.forEach(card => setCell(card, +sh, 3));
+        }
+        render(); return "otherDone";
+      } };
+  },
+
+  otherDone: () => {
+    const sh = D().oshow;
+    return { phase: `Turn ${G().turn} · ${esc(pname(D().who))}`, title: "Sheet updated",
+      body: `<p>I've crossed the three cards for everyone who passed.</p>` +
+        (sh !== "" ? `<p>${esc(pname(sh))} showed a card you didn't see, so I've put <b>?</b> under them for any of the three that's still unknown. If only one was possible, I've ticked it.</p>` : "") +
+        `<p class="note">If they accuse, you'll find out whether they were right when they check the envelope.</p>`,
+      next: () => "whose" };
+  },
+};
+
+function renderGuide() {
+  const g = G(), el = document.getElementById("guide");
+  el.hidden = !g.on;
+  document.body.classList.toggle("guiding", g.on);
+  document.getElementById("guideBtn").setAttribute("aria-pressed", g.on);
+  if (!g.on) return;
+  if (state.me == null && !["intro", "setup", "seats"].includes(g.step)) g.step = "seats";
+  const s = (STEPS[g.step] || STEPS.intro)();
+  current = s;
+  el.classList.toggle("min", g.min);
+  document.getElementById("gMin").textContent = g.min ? "▴" : "▾";
+  document.getElementById("gMin").setAttribute("aria-label", g.min ? "Expand guide" : "Minimise guide");
+  document.getElementById("gPhase").innerHTML = g.min ? `${esc(s.phase)} · <b>${esc(s.title)}</b>` : esc(s.phase);
+  document.getElementById("gBody").innerHTML = `<h2>${esc(s.title)}</h2>${s.body || ""}` +
+    (s.choices ? `<div class="choice">${s.choices.map(([l], i) => `<button class="btn" type="button" data-choice="${i}">${esc(l)}</button>`).join("")}</div>` : "") +
+    `<p class="err" id="gErr" role="alert"></p>`;
+  document.getElementById("gBody").scrollTop = 0;
+  document.getElementById("gFoot").innerHTML =
+    `<button class="btn" type="button" id="gBack"${g.hist.length ? "" : " disabled"}>Back</button><span class="spacer"></span>` +
+    (s.next ? `<button class="btn primary" type="button" id="gNext">Next</button>` : "");
+  requestAnimationFrame(() => document.body.style.setProperty("--guide-h", el.offsetHeight + "px"));
+  save();
 }
-
-document.getElementById("logForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const from = document.getElementById("lFrom").value, to = document.getElementById("lTo").value;
-  const card = document.getElementById("lCard").value, why = document.getElementById("lWhy").value;
-  const note = document.getElementById("lNote").value.trim();
-  if (from === to) { document.getElementById("lHelp").textContent = "Shown by and Shown to must be different players."; return; }
-  state.log.push({from, to, card, why, note});
-  if (to === "me" && card && from !== "me") {
-    state.cells[card + "|" + from] = 2;
-    const btn = document.querySelector(`[data-cell="${CSS.escape(card + "|" + from)}"]`);
-    if (btn) { btn.dataset.v = 2; btn.textContent = MARKS[2]; }
-  }
-  document.getElementById("lNote").value = "";
-  document.getElementById("lCard").value = "";
-  document.getElementById("lHelp").textContent = "Added. A card shown to you is also ticked ✓ on the sheet.";
-  save(); renderLog();
+let current = null;
+function go(result) {
+  if (result && result.error) { document.getElementById("gErr").textContent = result.error; return; }
+  G().hist.push(G().step); if (G().hist.length > 60) G().hist.shift();
+  G().step = result; renderGuide();
+}
+document.getElementById("guide").addEventListener("click", e => {
+  const ch = e.target.closest("[data-choice]");
+  if (ch) return go(current.choices[+ch.dataset.choice][1]());
+  if (e.target.id === "gNext") return go(current.next());
+  if (e.target.id === "gBack" && G().hist.length) { G().step = G().hist.pop(); return renderGuide(); }
+  if (e.target.id === "gMin") { G().min = !G().min; return renderGuide(); }
+  if (e.target.id === "gClose") { G().on = false; return renderGuide(); }
 });
-document.getElementById("entries").addEventListener("click", e => {
-  const d = e.target.closest("[data-del]");
-  if (!d) return;
-  state.log.splice(+d.dataset.del, 1); save(); renderLog();
-});
-document.getElementById("grids").addEventListener("change", e => {
-  if (e.target.id && e.target.id.startsWith("p")) { fillSelects(); renderLog(); }
+document.getElementById("guideBtn").addEventListener("click", () => {
+  G().on = !G().on; G().min = false; renderGuide();
+  if (G().on) toast(G().step === "intro" ? "New player mode is on." : "Picking up where you left off.");
 });
 
-const _render = render;
-render = function () { _render(); fillSelects(); renderLog(); };
-render(); showReset();
+render(); showReset(); renderGuide();
 </script>
 </body>
 </html>

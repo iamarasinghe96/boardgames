@@ -219,7 +219,7 @@ td.c button, td.name button, th.p input, .legend button, .icon-btn { touch-actio
   <a class="btn" id="rulesLink" href="rules.pdf" target="_blank" rel="noopener">Rules (PDF)</a>
   <div id="resetArea"></div>
 </div>
-<p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row. Every tap shows what the mark means.</p>
+<p class="hint">Tap a box to cycle ✕ → ✓ → ? → blank. Tap a name to strike it off; tap again to star it as the answer. Type initials in the top row. Tap the key above to see what each mark means.</p>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -329,15 +329,14 @@ document.getElementById("grids").addEventListener("click", e => {
     const v = ((state.cells[cell.dataset.cell] || 0) + 1) % MARKS.length;
     if (v) state.cells[cell.dataset.cell] = v; else delete state.cells[cell.dataset.cell];
     cell.dataset.v = v; cell.textContent = MARKS[v]; save();
-    const [card, c] = cell.dataset.cell.split("|");
-    toast(cellMeaning(card, +c, v)); return;
+    return;
   }
   const row = e.target.closest("[data-row]");
   if (row) {
     const name = row.dataset.row, v = ((state.rows[name] || 0) + 1) % 3;
     if (v) state.rows[name] = v; else delete state.rows[name];
     row.closest("tr").className = v===1?"out":v===2?"solved":"";
-    updateCount(); save(); toast(rowMeaning(name, v));
+    updateCount(); save();
   }
 });
 document.getElementById("grids").addEventListener("input", e => {
